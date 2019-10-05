@@ -1,0 +1,88 @@
+{% extends 'base_detail_list.html' %}
+{% load staticfiles %}
+{% block title %}天天生鲜-商品搜索结果列表{% endblock title %}
+{% block main_content %}
+	<div class="breadcrumb">
+		<a href="#">{{ query }}</a>
+		<span>></span>
+		<a href="#">搜索结果如下：</a>
+	</div>
+
+	<div class="main_wrap clearfix">
+    {% csrf_token %}
+        <ul class="goods_type_list clearfix">
+                {% for item in page %}
+				<li>
+					<a href="{% url 'goods:detail' item.object.id %}"><img src="{{ item.object.image.url }}"></a>
+					<h4><a href="{% url 'goods:detail' item.object.id %}">{{ item.object.name }}</a></h4>
+					<div class="operate">
+						<span class="prize">￥{{ item.object.price }}</span>
+						<span class="unit">{{ item.object.price }}/{{ item.object.unite }}</span>
+						<a href="javascript:;" sku_id="{{ item.object.id }}" class="add_goods" title="加入购物车" id="add_goods"></a>
+					</div>
+				</li>
+                {% endfor %}
+			</ul>
+
+        <div class="pagenation">
+                {% if page.has_previous %}
+				<a href="/search?q={{ query }}&page={{ page.previous_page_number }}">上一页</a>
+                {% endif %}
+                {% for pindex in paginator.page_range %}
+                    {% if pindex == page.number %}
+				        <a href="/search?q={{ query }}&page={{ pindex }}" class="active">{{ pindex }}</a>
+                    {% else %}
+				        <a href="/search?q={{ query }}&page={{ pindex }}">{{ pindex }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if page.has_next %}
+				<a href="/search?q={{ query }}&page={{ page.next_page_number }}">下一页</a>
+                {% endif %}
+			</div>
+	</div>
+{% endblock main_content %}
+{% block bottomfiles %}
+	<script type="text/javascript" src="{% static 'js/jquery-1.12.4.min.js' %}"></script>
+	<script type="text/javascript">
+        // 获取add_cart div元素左上角的坐标
+		var $add_x = $('#add_goods').offset().top;
+		var $add_y = $('#add_goods').offset().left;
+        // 获取show_cart div元素左上角的坐标
+		var $to_x = $('#show_count').offset().top;
+		var $to_y = $('#show_count').offset().left;
+
+
+		$('#add_goods').click(function(){
+			// 获取商品id和商品数量
+            sku_id = $(this).attr('sku_id')
+            count = '1'
+            csrf = $('input[name="csrfmiddlewaretoken"]').val()
+            //组织参数
+            params = {'sku_id': sku_id, 'count': count, 'csrfmiddlewaretoken': csrf}
+            // 发起ajax post请求，访问/cart/add，传递参数 sku_id count
+            $.post('/cart/add', params, function (data) {
+                if (data.res == 5){
+                    // 添加成功
+                    // 添加动画
+                    $(".add_jump").css({'left':$add_y+80,'top':$add_x+10,'display':'block'})
+                    $(".add_jump").stop().animate({
+                        'left': $to_y+7,
+                        'top': $to_x+7},
+				        "fast", function() {
+					         $(".add_jump").fadeOut('fast',function(){
+					             // 重新设置用户购物车中商品的条目数
+						          $('#show_count').html(data.total_count);
+					         });
+
+			         });
+                }
+                else{
+                    // 添加失败
+                    alert(data.errmsg)
+                }
+            })
+
+		})
+    </script>
+{% endblock bottomfiles %}
+
